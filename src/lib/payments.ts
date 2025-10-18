@@ -1,10 +1,16 @@
 import { db } from '@/lib/db'
 import Stripe from 'stripe'
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
-})
+// Initialize Stripe only if secret key is available
+let stripe: Stripe | null = null
+
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-11-20.acacia',
+  })
+} else {
+  console.warn('STRIPE_SECRET_KEY not found. Payment features will be disabled.')
+}
 
 export interface PaymentIntentData {
   amount: number
@@ -35,6 +41,13 @@ export interface InvoiceData {
 }
 
 export class PaymentService {
+  // Check if Stripe is initialized
+  private checkStripeInitialized(): void {
+    if (!stripe) {
+      throw new Error('Stripe is not initialized. Please set STRIPE_SECRET_KEY environment variable.')
+    }
+  }
+
   // Create a payment intent
   async createPaymentIntent(data: PaymentIntentData): Promise<{
     clientSecret: string
@@ -42,7 +55,9 @@ export class PaymentService {
     amount: number
     currency: string
   }> {
-    const paymentIntent = await stripe.paymentIntents.create({
+    this.checkStripeInitialized()
+    
+    const paymentIntent = await stripe!.paymentIntents.create({
       amount: Math.round(data.amount * 100), // Convert to cents
       currency: data.currency || 'usd',
       description: data.description,
@@ -62,6 +77,8 @@ export class PaymentService {
 
   // Create or retrieve Stripe customer
   async createCustomer(userId: string, email: string, name?: string): Promise<string> {
+    this.checkStripeInitialized()
+    
     // Check if user already has a Stripe customer ID
     const user = await db.user.findUnique({
       where: { id: userId },
@@ -73,7 +90,7 @@ export class PaymentService {
     }
 
     // Create new Stripe customer
-    const customer = await stripe.customers.create({
+    const customer = await stripe!.customers.create({
       email,
       name,
       metadata: {
@@ -95,12 +112,14 @@ export class PaymentService {
     paymentMethodId: string,
     customerId: string
   ): Promise<void> {
-    await stripe.paymentMethods.attach(paymentMethodId, {
+    this.checkStripeInitialized()
+    
+    await stripe!.paymentMethods.attach(paymentMethodId, {
       customer: customerId,
     })
 
     // Set as default payment method
-    await stripe.customers.update(customerId, {
+    await stripe!.customers.update(customerId, {
       invoice_settings: {
         default_payment_method: paymentMethodId,
       },
@@ -118,6 +137,8 @@ export class PaymentService {
     currentPeriodStart: Date
     currentPeriodEnd: Date
   }> {
+    this.checkStripeInitialized()
+    
     // Get or create customer
     const user = await db.user.findUnique({
       where: { id: userId },
@@ -152,11 +173,11 @@ export class PaymentService {
       subscriptionData.trial_period_days = data.trialPeriodDays
     }
 
-    const subscription = await stripe.subscriptions.create(subscriptionData)
+    const subscription = await stripe!.subscriptions.create(subscriptionData)
 
     // Store subscription in database
-    const price = await stripe.prices.retrieve(data.priceId)
-    const product = await stripe.products.retrieve(price.product as string)
+    const price = await stripe!.prices.retrieve(data.priceId)
+    const product = await stripe!.products.retrieve(price.product as string)
 
     await db.subscription.create({
       data: {
@@ -192,12 +213,14 @@ export class PaymentService {
 
   // Cancel subscription
   async cancelSubscription(subscriptionId: string, immediately = false): Promise<void> {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    this.checkStripeInitialized()
+    
+    const subscription = await stripe!.subscriptions.retrieve(subscriptionId)
 
     if (immediately) {
-      await stripe.subscriptions.cancel(subscriptionId)
+      await stripe!.subscriptions.cancel(subscriptionId)
     } else {
-      await stripe.subscriptions.update(subscriptionId, {
+      await stripe!.subscriptions.update(subscriptionId, {
         cancel_at_period_end: true,
       })
     }
@@ -220,9 +243,11 @@ export class PaymentService {
     currency: string
     status: string
   }> {
+    this.checkStripeInitialized()
+    
     const invoiceItems = await Promise.all(
       data.items.map(item =>
-        stripe.invoiceItems.create({
+        stripe!.invoiceItems.create({
           customer: data.customerId,
           description: item.description,
           amount: Math.round(item.amount * 100),
@@ -231,7 +256,7 @@ export class PaymentService {
       )
     )
 
-    const invoice = await stripe.invoices.create({
+    const invoice = await stripe!.invoices.create({
       customer: data.customerId,
       auto_advance: true,
       collection_method: 'send_invoice',
@@ -260,7 +285,9 @@ export class PaymentService {
     amount: number
     status: string
   }> {
-    const refund = await stripe.refunds.create({
+    this.checkStripeInitialized()
+    
+    const refund = await stripe!.refunds.create({
       payment_intent: paymentIntentId,
       amount: amount ? Math.round(amount * 100) : undefined,
       reason: reason as any,
@@ -275,7 +302,9 @@ export class PaymentService {
 
   // Get payment methods for customer
   async getPaymentMethods(customerId: string): Promise<any[]> {
-    const paymentMethods = await stripe.paymentMethods.list({
+    this.checkStripeInitialized()
+    
+    const paymentMethods = await stripe!.paymentMethods.list({
       customer: customerId,
       type: 'card',
     })
@@ -288,6 +317,8 @@ export class PaymentService {
     userId: string,
     paymentMethodId: string
   ): Promise<void> {
+    this.checkStripeInitialized()
+    
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { stripeCustomerId: true }
@@ -300,7 +331,7 @@ export class PaymentService {
     await this.attachPaymentMethod(paymentMethodId, user.stripeCustomerId)
 
     // Store payment method in database
-    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId)
+    const paymentMethod = await stripe!.paymentMethods.retrieve(paymentMethodId)
 
     await db.paymentMethod.create({
       data: {
@@ -319,6 +350,8 @@ export class PaymentService {
 
   // Handle webhook events
   async handleWebhook(event: Stripe.Event): Promise<void> {
+    this.checkStripeInitialized()
+    
     switch (event.type) {
       case 'payment_intent.succeeded':
         await this.handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent)
@@ -429,8 +462,10 @@ export class PaymentService {
 
   // Verify webhook signature
   verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
+    this.checkStripeInitialized()
+    
     try {
-      stripe.webhooks.constructEvent(payload, signature, secret)
+      stripe!.webhooks.constructEvent(payload, signature, secret)
       return true
     } catch (error) {
       console.error('Webhook signature verification failed:', error)
