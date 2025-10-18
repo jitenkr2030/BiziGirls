@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { config } from './config'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -29,7 +30,7 @@ export const db =
     log: connectionConfig.log,
     datasources: {
       db: {
-        url: process.env.DATABASE_URL!,
+        url: config.database.url || 'file:./dev.db',
       }
     },
   })
