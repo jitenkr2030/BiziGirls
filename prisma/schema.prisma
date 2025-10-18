@@ -1,0 +1,1812 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User Authentication and Profile
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String?
+  firstName     String
+  lastName      String
+  name          String?  // Computed field
+  avatar        String?
+  bio           String?
+  phone         String?
+  location      String?
+  website       String?
+  linkedin      String?
+  twitter       String?
+  instagram     String?
+  dateOfBirth   DateTime?
+  gender        String?  // For women-focused platform
+  businessStage String?  // idea, startup, growth, established
+  industry      String?
+  skills        String?  // JSON array of skills
+  interests     String?  // JSON array of interests
+  role          String   @default("entrepreneur") // entrepreneur, mentor, investor, admin
+  isActive      Boolean  @default(true)
+  isVerified    Boolean  @default(false)
+  emailVerifiedAt DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  twoFactorSecret   String?
+  twoFactorEnabled  Boolean  @default(false)
+  twoFactorBackupCodes String?  // JSON array of backup codes
+  lastLoginAt       DateTime?
+  provider         String?  // google, linkedin, etc.
+  providerId       String?  // OAuth provider user ID
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  businessProfile   BusinessProfile?
+  courses           CourseEnrollment[]
+  mentorshipsAsMentor Mentorship[] @relation("Mentor")
+  mentorshipsAsMentee Mentorship[] @relation("Mentee")
+  mentorProfile     MentorProfile?
+  mentorAvailability MentorAvailability[]
+  sessionReviewsAsReviewer SessionReview[] @relation("SessionReviewer")
+  sessionReviewsAsReviewee SessionReview[] @relation("SessionReviewee")
+  investments       Investment[]
+  fundingRequests   FundingRequest[]
+  communityPosts    CommunityPost[]
+  communityComments CommunityComment[]
+  events            EventAttendance[]
+  products          Product[]
+  orders            Order[]
+  aiConversations   AIConversation[]
+  tasks             Task[]
+  certificates      Certificate[]
+  quizAttempts      QuizAttempt[]
+  lessonProgress    LessonProgress[]
+  referralsAsReferrer Referral[] @relation("Referrer")
+  referralsAsReferred Referral[] @relation("Referred")
+  affiliateEarnings AffiliateEarning[]
+  coursesAsInstructor Course[] @relation("Instructor")
+  courseReviews     CourseReview[] @relation("CourseReview")
+  organizedEvents   Event[] @relation("Organizer")
+  productReviews    ProductReview[] @relation("ProductReview")
+  sessions          UserSession[]
+  emailVerificationToken EmailVerificationToken?
+  grantApplications GrantApplication[]
+  notifications Notification[]
+  refundsAsRequester Refund[] @relation("RefundRequester")
+  refundsAsApprover Refund[] @relation("RefundApprover")
+  refundsAsRejector Refund[] @relation("RefundRejector")
+  subscriptions Subscription[]
+  invoices Invoice[]
+  paymentMethods PaymentMethod[]
+  businessMetrics BusinessMetric[]
+  customerAnalytics CustomerAnalytics[]
+  salesReports SalesReport[]
+  growthTracking GrowthTracking[]
+  customReports CustomReport[]
+  userProfile UserProfile?
+  connectionsAsRequester Connection[] @relation("ConnectionRequester")
+  connectionsAsRecipient Connection[] @relation("ConnectionRecipient")
+  messagesAsSender Message[] @relation("MessageSender")
+  messagesAsRecipient Message[] @relation("MessageRecipient")
+  createdGroups CommunityGroup[] @relation("GroupCreator")
+  groupMemberships GroupMember[]
+  networkingMatchesAsUser NetworkingMatch[] @relation("NetworkingMatchUser")
+  networkingMatchesAsMatched NetworkingMatch[] @relation("NetworkingMatchMatchedUser")
+  userChecklistProgress UserChecklistProgress[]
+  legalConsultations LegalConsultation[]
+  contracts Contract[]
+  intellectualProperties IntellectualProperty[]
+  blogPosts      BlogPost[]
+  blogComments   BlogComment[]
+  resources      Resource[]
+  newsletters    Newsletter[]
+  mediaFiles     MediaFile[]
+  contentSchedules ContentSchedule[]
+  auditLogs      AuditLog[]
+  userRoles      UserRole[]
+
+  @@map("users")
+}
+
+// Password Reset Tokens
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// Email Verification Tokens
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([userId])
+  @@map("email_verification_tokens")
+}
+
+// User Sessions
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  deviceInfo String?
+  ipAddress  String?
+  userAgent  String?
+  expiresAt DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_sessions")
+}
+
+// Business Profile
+model BusinessProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  businessName     String
+  businessEmail    String?
+  businessPhone    String?
+  businessAddress  String?
+  businessWebsite  String?
+  businessLogo     String?
+  businessType     String?  // sole-proprietorship, llc, corporation, etc.
+  industry         String
+  description      String?
+  mission          String?
+  vision           String?
+  foundedDate      DateTime?
+  employeeCount    Int?
+  annualRevenue    Float?
+  targetMarket     String?
+  businessPlan     String?  // URL to business plan document
+  isRegistered     Boolean  @default(false)
+  registrationDate DateTime?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("business_profiles")
+}
+
+// Mentor Profile
+model MentorProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  expertise       String?  // JSON array of areas of expertise
+  experience      Int      // Years of experience
+  company         String?
+  position        String?
+  education       String?
+  certifications  String?  // JSON array of certifications
+  bio             String?
+  hourlyRate      Float?
+  availability    String?  // available, busy, unavailable
+  mentorshipType  String?  // JSON array of mentorship types
+  isVerified      Boolean  @default(false)
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("mentor_profiles")
+}
+
+// Courses and Learning
+model Course {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  category      String   // business, marketing, finance, leadership, etc.
+  level         String   // beginner, intermediate, advanced
+  duration      Int      // Duration in hours
+  price         Float?
+  thumbnail     String?
+  instructorId  String
+  instructor    User     @relation("Instructor", fields: [instructorId], references: [id])
+  
+  isPublished   Boolean  @default(false)
+  isFeatured    Boolean  @default(false)
+  enrollmentCount Int     @default(0)
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  lessons       Lesson[]
+  enrollments   CourseEnrollment[]
+  reviews       CourseReview[]
+  certificates  Certificate[]
+
+  @@map("courses")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     String
+  videoUrl    String?
+  duration    Int      // Duration in minutes
+  order       Int
+  isPreview   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  quizzes     Quiz[]
+  progress    LessonProgress[]
+
+  @@map("lessons")
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String?
+  timeLimit   Int?     // Time limit in minutes
+  passingScore Float   @default(0.7) // 70% passing score
+  isRequired  Boolean  @default(false)
+  order       Int
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  questions   Question[]
+  attempts    QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  question    String
+  type        String   // multiple-choice, true-false, short-answer, essay
+  options     String?  // JSON array of options for multiple choice
+  correctAnswer String?
+  points      Int      @default(1)
+  order       Int
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  answers     Answer[]
+
+  @@map("questions")
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  score       Float
+  maxScore    Float
+  isPassed    Boolean
+  timeSpent   Int      // Time spent in seconds
+  completedAt DateTime
+  
+  createdAt   DateTime @default(now())
+
+  // Relations
+  answers     Answer[]
+
+  @@unique([quizId, userId])
+  @@map("quiz_attempts")
+}
+
+model Answer {
+  id          String   @id @default(cuid())
+  questionId  String
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptId   String
+  attempt     QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  answer      String
+  isCorrect   Boolean
+  
+  createdAt   DateTime @default(now())
+
+  @@map("answers")
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  enrollmentId String
+  enrollment  CourseEnrollment @relation(fields: [enrollmentId], references: [id])
+  
+  isCompleted Boolean  @default(false)
+  progress    Float    @default(0) // Progress percentage for this lesson
+  timeSpent   Int      @default(0) // Time spent in seconds
+  lastWatchedPosition Int? @default(0) // Video position in seconds
+  
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model CourseEnrollment {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  
+  progress    Float    @default(0) // Progress percentage
+  completedAt DateTime?
+  certificateId String?
+  
+  enrolledAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  lessonProgress LessonProgress[]
+
+  @@unique([userId, courseId])
+  @@map("course_enrollments")
+}
+
+model CourseReview {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("CourseReview", fields: [userId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  
+  rating    Int      // 1-5 stars
+  comment   String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@map("course_reviews")
+}
+
+// Mentorship
+model Mentorship {
+  id            String   @id @default(cuid())
+  mentorId      String
+  mentor        User     @relation("Mentor", fields: [mentorId], references: [id])
+  menteeId      String
+  mentee        User     @relation("Mentee", fields: [menteeId], references: [id])
+  
+  status        String   @default("pending") // pending, accepted, rejected, completed, cancelled
+  type          String   // one-on-one, group, coaching
+  focusAreas    String?  // JSON array of focus areas
+  goals         String?
+  duration      Int      // Duration in weeks
+  price         Float?
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  paymentId     String?  // Reference to payment
+  paymentStatus String?  // pending, succeeded, failed, refunded
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  sessions      MentorshipSession[]
+
+  @@unique([mentorId, menteeId])
+  @@map("mentorships")
+}
+
+// Mentorship Sessions
+model MentorshipSession {
+  id            String   @id @default(cuid())
+  mentorshipId  String
+  mentorship    Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+  
+  title         String?
+  description   String?
+  startTime     DateTime
+  endTime       DateTime
+  status        String   @default("scheduled") // scheduled, in-progress, completed, cancelled, no-show
+  sessionType   String   @default("one-on-one") // one-on-one, group, workshop
+  location      String?  // Physical location or "Online"
+  isOnline      Boolean  @default(true)
+  meetingUrl    String?  // Video call URL
+  meetingId     String?  // Video call meeting ID
+  notes         String?  // Session notes or agenda
+  recordingUrl  String?  // Session recording URL
+  paymentId     String?  // Reference to payment
+  paymentStatus String?  // pending, succeeded, failed, refunded
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  reviews       SessionReview[]
+
+  @@map("mentorship_sessions")
+}
+
+// Mentor Availability
+model MentorAvailability {
+  id            String   @id @default(cuid())
+  mentorId      String
+  mentor        User     @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  
+  dayOfWeek     Int      // 0 = Sunday, 1 = Monday, etc.
+  startTime     String   // HH:mm format
+  endTime       String   // HH:mm format
+  timezone      String   @default("UTC")
+  
+  isRecurring   Boolean  @default(true)
+  recurringUntil DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("mentor_availability")
+}
+
+// Session Reviews and Ratings
+model SessionReview {
+  id            String   @id @default(cuid())
+  sessionId     String
+  session       MentorshipSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  reviewer      User     @relation("SessionReviewer", fields: [reviewerId], references: [id])
+  revieweeId    String
+  reviewee      User     @relation("SessionReviewee", fields: [revieweeId], references: [id])
+  
+  rating        Int      // 1-5 stars
+  comment       String?
+  anonymous     Boolean  @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([sessionId, reviewerId])
+  @@map("session_reviews")
+}
+
+// Video Call Management
+model VideoCall {
+  id            String   @id @default(cuid())
+  meetingId     String   @unique
+  meetingUrl    String
+  title         String?
+  startTime     DateTime
+  endTime       DateTime
+  status        String   @default("scheduled") // scheduled, in-progress, ended, failed
+  provider      String   @default("MockVideoCall")
+  password      String?
+  record        Boolean  @default(false)
+  waitingRoom   Boolean  @default(true)
+  recordingUrl  String?
+  expiresAt     DateTime?
+  endedAt       DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("video_calls")
+}
+
+// Payment Management
+model Payment {
+  id            String   @id @default(cuid())
+  paymentId     String   @unique
+  amount        Float
+  currency      String   @default("USD")
+  description   String
+  status        String   @default("pending") // pending, succeeded, failed, cancelled, refunded
+  provider      String   @default("MockPayment")
+  metadata      String?  // JSON metadata
+  customerId    String?
+  paymentMethod String?  // JSON payment method details
+  processedAt   DateTime?
+  refundedAt    DateTime?
+  refundAmount  Float?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  refunds       Refund[] @relation("RefundPayment")
+
+  @@map("payments")
+}
+
+// Funding and Investments
+model FundingRequest {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  businessName  String
+  description   String
+  industry      String
+  fundingType   String   // equity, debt, grant, loan
+  amount        Float
+  valuation     Float?
+  equityOffered Float?
+  useOfFunds    String?
+  businessPlan  String?  // URL to business plan
+  pitchDeck     String?  // URL to pitch deck
+  
+  status        String   @default("draft") // draft, submitted, under-review, approved, rejected, funded
+  deadline      DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  investments   Investment[]
+  refunds       Refund[] @relation("RefundFundingRequest")
+
+  @@map("funding_requests")
+}
+
+model Investment {
+  id             String   @id @default(cuid())
+  fundingRequestId String
+  fundingRequest FundingRequest @relation(fields: [fundingRequestId], references: [id])
+  investorId     String
+  investor       User     @relation(fields: [investorId], references: [id])
+  
+  amount         Float
+  equity         Float?
+  terms          String?
+  status         String   @default("proposed") // proposed, accepted, completed, cancelled
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("investments")
+}
+
+// Community and Networking
+model CommunityPost {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  title     String
+  content   String
+  category  String?  // discussion, question, announcement, success-story
+  tags      String?  // JSON array of tags
+  image     String?
+  
+  likes     Int      @default(0)
+  views     Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  comments  CommunityComment[]
+
+  @@map("community_posts")
+}
+
+model CommunityComment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  content   String
+  parentId  String?  // For nested comments
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("community_comments")
+}
+
+// Events
+model Event {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  type          String   // webinar, workshop, networking, conference
+  category      String   // business, marketing, finance, leadership, etc.
+  location      String?  // Physical location or "Online"
+  isOnline      Boolean  @default(true)
+  maxAttendees  Int?
+  price         Float?
+  thumbnail     String?
+  organizerId   String
+  organizer     User     @relation("Organizer", fields: [organizerId], references: [id])
+  
+  startDate     DateTime
+  endDate       DateTime
+  isPublished   Boolean  @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  attendees     EventAttendance[]
+
+  @@map("events")
+}
+
+model EventAttendance {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id])
+  
+  status      String   @default("registered") // registered, attended, cancelled
+  feedback    String?
+  rating      Int?
+  
+  registeredAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, eventId])
+  @@map("event_attendances")
+}
+
+// E-commerce and Marketplace
+model Product {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  name          String
+  description   String
+  category      String
+  price         Float
+  images        String?  // JSON array of image URLs
+  tags          String?  // JSON array of tags
+  inventory     Int      @default(0)
+  sku           String?
+  isDigital     Boolean  @default(false)
+  digitalFile   String?  // URL to digital file
+  
+  isPublished   Boolean  @default(false)
+  isFeatured    Boolean  @default(false)
+  viewCount     Int      @default(0)
+  salesCount    Int      @default(0)
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  orderItems    OrderItem[]
+  reviews       ProductReview[]
+
+  @@map("products")
+}
+
+model ProductReview {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("ProductReview", fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  
+  rating    Int      // 1-5 stars
+  comment   String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@map("product_reviews")
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String?  @unique
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  status        String   @default("pending") // pending, processing, shipped, delivered, cancelled
+  paymentId     String?
+  subtotal      Float    @default(0)
+  shipping      Float    @default(0)
+  tax           Float    @default(0)
+  totalAmount   Float
+  shippingAddress String?
+  billingAddress  String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  orderItems    OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  
+  quantity  Int
+  price     Float    // Price at time of purchase
+  
+  createdAt DateTime @default(now())
+
+  @@map("order_items")
+}
+
+// AI Assistant
+model AIConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  title     String?
+  messages  Json     // Array of conversation messages
+  context   String?  // Business context or topic
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ai_conversations")
+}
+
+// Task Management
+model Task {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  title       String
+  description String?
+  category    String?  // business, personal, learning, etc.
+  priority    String   @default("medium") // low, medium, high
+  status      String   @default("pending") // pending, in-progress, completed, cancelled
+  dueDate     DateTime?
+  completedAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("tasks")
+}
+
+// Certificates
+model Certificate {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  
+  certificateUrl String?
+  issuedAt    DateTime @default(now())
+  expiresAt   DateTime?
+  
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@map("certificates")
+}
+
+// Affiliate and Referral Program
+model Referral {
+  id          String   @id @default(cuid())
+  referrerId  String
+  referrer    User     @relation("Referrer", fields: [referrerId], references: [id])
+  referredId  String
+  referred    User     @relation("Referred", fields: [referredId], references: [id])
+  
+  status      String   @default("pending") // pending, completed, cancelled
+  reward      Float?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([referrerId, referredId])
+  @@map("referrals")
+}
+
+model AffiliateEarning {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  source      String   // course, product, service
+  sourceId    String
+  amount      Float
+  commission  Float
+  status      String   @default("pending") // pending, approved, paid
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("affiliate_earnings")
+}
+
+// Funding Opportunities
+model FundingOpportunity {
+  id            String   @id @default(cuid())
+  
+  title         String
+  organization  String
+  description   String
+  amount        Float
+  type          String   // grant, loan, equity, competition
+  category      String
+  industry      String?
+  region        String?
+  deadline      DateTime?
+  difficulty    String   @default("medium") // low, medium, high
+  
+  eligibility   String?  // JSON array of eligibility criteria
+  requirements  String?  // JSON array of application requirements
+  applicationUrl String?
+  contactInfo   String?
+  
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+  viewCount     Int      @default(0)
+  applicationCount Int    @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  applications  GrantApplication[]
+
+  @@map("funding_opportunities")
+}
+
+// Grant Applications
+model GrantApplication {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  opportunityId String
+  opportunity   FundingOpportunity @relation(fields: [opportunityId], references: [id])
+  
+  status        String   @default("draft") // draft, submitted, under-review, approved, rejected
+  progress      Float    @default(0) // Application progress percentage
+  
+  businessPlan  String?  // URL to business plan
+  pitchDeck     String?  // URL to pitch deck
+  financialStatements String? // URL to financial statements
+  supportingDocuments String? // JSON array of document URLs
+  
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  decisionDate  DateTime?
+  feedback      String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, opportunityId])
+  @@map("grant_applications")
+}
+
+// Rate Limiting
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  count     Int      @default(0)
+  resetTime DateTime
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rate_limits")
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      String   // info, success, warning, error
+  title     String
+  message   String
+  data      String?  // JSON data for additional context
+  isRead    Boolean  @default(false)
+  priority  String   @default("medium") // low, medium, high
+  
+  actionUrl String?  // URL to navigate when clicked
+  actionText String? // Text for action button
+  
+  expiresAt DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+// Subscriptions
+model Subscription {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  planId        String
+  planName      String
+  description   String?
+  
+  price         Float
+  currency      String   @default("USD")
+  interval      String   // month, year
+  intervalCount Int      @default(1)
+  
+  status        String   @default("active") // active, cancelled, expired, paused
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEnd      DateTime?
+  cancelledAt   DateTime?
+  endedAt       DateTime?
+  
+  stripeSubscriptionId String?
+  stripeCustomerId     String?
+  
+  metadata      String?  // JSON metadata
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  invoices Invoice[]
+
+  @@map("subscriptions")
+}
+
+// Invoices
+model Invoice {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  invoiceNumber String   @unique
+  subscriptionId String?
+  subscription  Subscription? @relation(fields: [subscriptionId], references: [id])
+  
+  amount        Float
+  currency      String   @default("USD")
+  status        String   @default("draft") // draft, sent, paid, overdue, cancelled, refunded
+  
+  dueDate       DateTime
+  paidAt        DateTime?
+  cancelledAt   DateTime?
+  refundedAt    DateTime?
+  
+  items         String?  // JSON array of invoice items
+  notes         String?
+  
+  stripeInvoiceId String?
+  stripePaymentIntentId String?
+  
+  metadata      String?  // JSON metadata
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("invoices")
+}
+
+// Payment Methods
+model PaymentMethod {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          String   // card, bank_account, paypal
+  provider      String   // stripe, paypal
+  isDefault     Boolean  @default(false)
+  
+  last4         String?
+  brand         String?
+  expMonth      Int?
+  expYear       Int?
+  bankName      String?
+  bankLast4     String?
+  
+  stripePaymentMethodId String?
+  paypalEmail   String?
+  
+  isActive      Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("payment_methods")
+}
+
+// Refunds
+model Refund {
+  id            String   @id @default(cuid())
+  paymentId     String?
+  payment       Payment?  @relation("RefundPayment", fields: [paymentId], references: [id], onDelete: Cascade)
+  fundingRequestId String?
+  fundingRequest FundingRequest? @relation("RefundFundingRequest", fields: [fundingRequestId], references: [id], onDelete: Cascade)
+  
+  amount        Float
+  currency      String   @default("USD")
+  reason        String   // duplicate, fraudulent, requested_by_customer, etc.
+  notes         String?
+  status        String   @default("pending") // pending, approved, rejected, succeeded, failed
+  
+  requestedBy   String
+  requester     User     @relation("RefundRequester", fields: [requestedBy], references: [id])
+  
+  requiresApproval Boolean @default(true)
+  approvedBy    String?
+  approver      User?    @relation("RefundApprover", fields: [approvedBy], references: [id])
+  approvedAt    DateTime?
+  
+  rejectedBy    String?
+  rejector      User?    @relation("RefundRejector", fields: [rejectedBy], references: [id])
+  rejectedAt    DateTime?
+  rejectionReason String?
+  
+  processedAt   DateTime?
+  stripeRefundId String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("refunds")
+}
+
+// Analytics and Business Metrics
+model BusinessMetric {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  metricType    String   // revenue, expenses, profit, customers, orders, etc.
+  metricName    String   // e.g., "Monthly Revenue", "Customer Acquisition Cost"
+  value         Float
+  unit          String?  // e.g., "USD", "count", "percentage"
+  period        String   // daily, weekly, monthly, quarterly, yearly
+  date          DateTime // The date this metric represents
+  
+  targetValue   Float?
+  variance      Float?   // Difference from target
+  trend         String?  // up, down, stable
+  
+  category      String?  // financial, operational, marketing, customer
+  subcategory   String?  // e.g., revenue, expenses, profit
+  
+  metadata      String?  // JSON metadata for additional context
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("business_metrics")
+}
+
+// Customer Analytics
+model CustomerAnalytics {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  customerId    String?
+  customerEmail String?
+  
+  totalSpent    Float    @default(0)
+  orderCount    Int      @default(0)
+  averageOrderValue Float @default(0)
+  
+  firstOrderDate DateTime?
+  lastOrderDate  DateTime?
+  
+  customerSegment String? // new, returning, vip, at-risk, churned
+  acquisitionSource String? // organic, paid, referral, social, etc.
+  
+  lifetimeValue Float    @default(0)
+  churnRisk     Float?   // 0-1 scale
+  
+  preferences   String?  // JSON array of customer preferences
+  behavior      String?  // JSON object of behavior data
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("customer_analytics")
+}
+
+// Sales Reports
+model SalesReport {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reportName    String
+  reportType    String   // daily, weekly, monthly, quarterly, yearly, custom
+  
+  startDate     DateTime
+  endDate       DateTime
+  
+  totalRevenue  Float    @default(0)
+  totalOrders   Int      @default(0)
+  averageOrderValue Float @default(0)
+  
+  newCustomers  Int      @default(0)
+  returningCustomers Int @default(0)
+  
+  topProducts   String?  // JSON array of top performing products
+  salesByCategory String? // JSON object of sales by category
+  
+  conversionRate Float?   // 0-1 scale
+  customerAcquisitionCost Float?
+  
+  reportData    String?  // JSON object with detailed report data
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("sales_reports")
+}
+
+// Growth Tracking
+model GrowthTracking {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  kpiName       String   // e.g., "Monthly Revenue Growth", "Customer Growth Rate"
+  kpiCategory   String   // financial, customer, operational, marketing
+  
+  currentValue  Float
+  targetValue   Float
+  period        String   // daily, weekly, monthly, quarterly, yearly
+  
+  growthRate    Float?   // Percentage growth
+  variance      Float?   // Difference from target
+  
+  baselineValue Float?   // Starting value for comparison
+  achievement   String?  // on_track, ahead, behind, achieved
+  
+  milestones    String?  // JSON array of milestones
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("growth_tracking")
+}
+
+// Custom Reports
+model CustomReport {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reportName    String
+  description   String?
+  
+  reportConfig  String   // JSON configuration for the report
+  reportType    String   // chart, table, dashboard, export
+  
+  dataSource    String   // metrics, sales, customers, products, combined
+  
+  schedule      String?  // daily, weekly, monthly, quarterly, yearly, manual
+  lastGenerated DateTime?
+  nextScheduled DateTime?
+  
+  isPublic      Boolean  @default(false)
+  isTemplate    Boolean  @default(false)
+  
+  sharedWith    String?  // JSON array of user IDs this report is shared with
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("custom_reports")
+}
+
+// Networking and Community Models
+model UserProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  headline      String?
+  bio           String?
+  location      String?
+  website       String?
+  linkedin      String?
+  twitter       String?
+  instagram     String?
+  
+  skills        String?  // JSON array of skills
+  interests     String?  // JSON array of interests
+  goals         String?  // JSON array of professional goals
+  
+  isPublic      Boolean  @default(true)
+  isMentor      Boolean  @default(false)
+  isInvestor    Boolean  @default(false)
+  
+  availability  String?  // available, busy, unavailable
+  responseRate  Float?   // 0-1 scale
+  
+  viewCount     Int      @default(0)
+  connectionCount Int    @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+model Connection {
+  id            String   @id @default(cuid())
+  requesterId   String
+  requester     User     @relation("ConnectionRequester", fields: [requesterId], references: [id])
+  recipientId   String
+  recipient     User     @relation("ConnectionRecipient", fields: [recipientId], references: [id])
+  
+  status        String   @default("pending") // pending, accepted, rejected, blocked
+  message       String?
+  
+  connectedAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([requesterId, recipientId])
+  @@map("connections")
+}
+
+model Message {
+  id            String   @id @default(cuid())
+  senderId      String
+  sender        User     @relation("MessageSender", fields: [senderId], references: [id])
+  recipientId   String
+  recipient     User     @relation("MessageRecipient", fields: [recipientId], references: [id])
+  
+  content       String
+  type          String   @default("text") // text, image, file, system
+  
+  isRead        Boolean  @default(false)
+  readAt        DateTime?
+  
+  parentId      String?  // For threading
+  parent        Message? @relation("MessageReplies", fields: [parentId], references: [id])
+  replies       Message[] @relation("MessageReplies")
+  
+  metadata      String?  // JSON metadata for additional context
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("messages")
+}
+
+model CommunityGroup {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  category      String   // professional, social, industry, location
+  
+  creatorId     String
+  creator       User     @relation("GroupCreator", fields: [creatorId], references: [id])
+  
+  isPrivate     Boolean  @default(false)
+  isVerified    Boolean  @default(false)
+  
+  memberCount   Int      @default(0)
+  postCount     Int      @default(0)
+  
+  rules         String?  // JSON array of group rules
+  settings      String?  // JSON settings for the group
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  members GroupMember[] @relation("GroupMembers")
+
+  @@map("community_groups")
+}
+
+model GroupMember {
+  id            String   @id @default(cuid())
+  groupId       String
+  group         CommunityGroup @relation("GroupMembers", fields: [groupId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  role          String   @default("member") // member, moderator, admin
+  joinedAt      DateTime @default(now())
+  
+  isApproved    Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model NetworkingMatch {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation("NetworkingMatchUser", fields: [userId], references: [id])
+  matchedUserId  String
+  matchedUser   User     @relation("NetworkingMatchMatchedUser", fields: [matchedUserId], references: [id])
+  
+  matchScore    Float    // 0-1 scale
+  matchReason   String?  // JSON array of match reasons
+  
+  status        String   @default("pending") // pending, accepted, rejected, expired
+  
+  expiresAt     DateTime?
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, matchedUserId])
+  @@map("networking_matches")
+}
+
+// Legal & Compliance Models
+model DocumentTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  category      String   // business-formation, contracts, compliance, employment, intellectual-property
+  type          String   // template, guide, checklist, form
+  
+  content       String   // Template content or document structure
+  variables     String?  // JSON array of template variables
+  instructions  String?  // Instructions for using the template
+  
+  isPublic      Boolean  @default(true)
+  isPremium     Boolean  @default(false)
+  
+  downloadCount Int      @default(0)
+  viewCount     Int      @default(0)
+  
+  tags          String?  // JSON array of tags
+  metadata      String?  // JSON metadata for additional context
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("document_templates")
+}
+
+model ComplianceChecklist {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  category      String   // business-registration, tax-compliance, employment-law, data-privacy, industry-specific
+  
+  items         String   // JSON array of checklist items
+  requirements  String?  // JSON array of legal requirements
+  
+  isPublic      Boolean  @default(true)
+  isIndustrySpecific Boolean @default(false)
+  industry      String?  // Industry this checklist applies to
+  
+  jurisdiction  String?  // Geographic jurisdiction
+  lastUpdated   DateTime?
+  
+  usageCount    Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userProgress UserChecklistProgress[]
+
+  @@map("compliance_checklists")
+}
+
+model UserChecklistProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklistId   String
+  checklist     ComplianceChecklist @relation(fields: [checklistId], references: [id])
+  
+  progress      String   // JSON array of completed items and their status
+  completedAt   DateTime?
+  isCompleted   Boolean  @default(false)
+  
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, checklistId])
+  @@map("user_checklist_progress")
+}
+
+model LegalConsultation {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  consultationType String // business-formation, contract-review, compliance, intellectual-property, employment
+  title         String
+  description   String
+  urgency       String   // low, medium, high, urgent
+  
+  preferredDate DateTime?
+  preferredTime String?
+  duration      Int      // Duration in minutes
+  
+  status        String   @default("pending") // pending, scheduled, in-progress, completed, cancelled
+  
+  assignedTo    String?  // Legal professional ID
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  
+  documents     String?  // JSON array of related documents
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("legal_consultations")
+}
+
+model Contract {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title         String
+  contractType  String   // service-agreement, partnership, employment, nda, lease, purchase
+  parties       String   // JSON array of contract parties
+  terms         String   // Contract terms and conditions
+  
+  status        String   @default("draft") // draft, pending-review, active, expired, terminated
+  startDate     DateTime?
+  endDate       DateTime?
+  
+  renewalTerms  String?  // JSON renewal terms
+  terminationClause String?
+  
+  relatedDocuments String? // JSON array of related documents
+  tags          String?  // JSON array of tags
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("contracts")
+}
+
+model RegulatoryUpdate {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  category      String   // tax-law, employment-law, data-privacy, industry-regulation, business-licensing
+  
+  jurisdiction  String   // Geographic jurisdiction
+  effectiveDate DateTime
+  severity      String   // low, medium, high, critical
+  
+  content       String   // Full update content
+  summary       String?  // Executive summary
+  actionItems   String?  // JSON array of required actions
+  
+  isRelevant    Boolean  @default(true)
+  targetIndustries String? // JSON array of target industries
+  
+  viewCount     Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("regulatory_updates")
+}
+
+model IntellectualProperty {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          String   // trademark, copyright, patent, trade-secret
+  title         String
+  description   String
+  
+  status        String   @default("draft") // draft, filed, registered, expired, abandoned
+  
+  filingDate    DateTime?
+  registrationDate DateTime?
+  expiryDate    DateTime?
+  
+  jurisdiction  String   // Geographic jurisdiction
+  registrationNumber String?
+  
+  documents     String?  // JSON array of related documents
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("intellectual_properties")
+}
+
+// Content Management Models
+model BlogPost {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  content       String
+  excerpt       String?
+  
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id])
+  
+  featuredImage String?
+  category      String?
+  tags          String?  // JSON array of tags
+  status        String   @default("draft") // draft, published, archived
+  
+  publishedAt   DateTime?
+  metaTitle     String?
+  metaDescription String?
+  metaKeywords  String?
+  
+  viewCount     Int      @default(0)
+  likeCount     Int      @default(0)
+  commentCount  Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  comments      BlogComment[]
+
+  @@map("blog_posts")
+}
+
+model BlogComment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  
+  content   String
+  parentId  String?  // For nested comments
+  parent    BlogComment? @relation("BlogCommentReplies", fields: [parentId], references: [id])
+  replies   BlogComment[] @relation("BlogCommentReplies")
+  
+  isApproved Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("blog_comments")
+}
+
+model Resource {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  type          String   // ebook, template, guide, video, audio, tool
+  
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id])
+  
+  fileUrl       String?
+  fileSize      Int?
+  fileFormat    String?
+  
+  category      String?
+  tags          String?  // JSON array of tags
+  status        String   @default("draft") // draft, published, archived
+  
+  isPremium     Boolean  @default(false)
+  price         Float?
+  
+  downloadCount Int      @default(0)
+  viewCount     Int      @default(0)
+  
+  publishedAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("resources")
+}
+
+model Newsletter {
+  id            String   @id @default(cuid())
+  title         String
+  subject       String
+  content       String
+  
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id])
+  
+  status        String   @default("draft") // draft, scheduled, sent, cancelled
+  
+  scheduledAt   DateTime?
+  sentAt        DateTime?
+  
+  recipientCount Int     @default(0)
+  openCount     Int      @default(0)
+  clickCount    Int      @default(0)
+  
+  segments      String?  // JSON array of audience segments
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("newsletters")
+}
+
+model MediaFile {
+  id            String   @id @default(cuid())
+  filename      String
+  originalName  String
+  filePath      String
+  fileSize      Int
+  mimeType      String
+  
+  uploadedBy    String
+  uploader      User     @relation(fields: [uploadedBy], references: [id])
+  
+  altText       String?
+  caption       String?
+  description   String?
+  
+  category      String?  // image, video, audio, document
+  tags          String?  // JSON array of tags
+  
+  isPublic      Boolean  @default(true)
+  
+  usageCount    Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("media_files")
+}
+
+model ContentSchedule {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  
+  contentType   String   // blog_post, newsletter, social_media
+  contentId     String?  // Reference to the content being scheduled
+  
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id])
+  
+  scheduledFor  DateTime
+  status        String   @default("scheduled") // scheduled, published, failed, cancelled
+  
+  platforms     String?  // JSON array of platforms to publish to
+  metadata      String?  // JSON metadata for scheduling
+  
+  publishedAt   DateTime?
+  errorMessage  String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("content_schedules")
+}
+
+// Audit and System Models
+model AuditLog {
+  id            String   @id @default(cuid())
+  
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  
+  action        String   // login, logout, create, read, update, delete, etc.
+  resourceType  String   // user, course, product, etc.
+  resourceId    String?
+  
+  oldValue      String?  // JSON string of old values
+  newValue      String?  // JSON string of new values
+  
+  ipAddress     String?
+  userAgent     String?
+  
+  status        String   @default("success") // success, failed, warning
+  
+  errorMessage  String?
+  
+  createdAt     DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// Role-Based Access Control Models
+model Role {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String?
+  
+  permissions   String?  // JSON array of permission strings
+  isSystem      Boolean  @default(false) // System roles cannot be deleted
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userRoles     UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId        String
+  role          Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  assignedAt    DateTime @default(now())
+  assignedBy    String?
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String?
+  resource      String   // The resource this permission applies to
+  action        String   // The action this permission allows
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("permissions")
+}
