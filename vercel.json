@@ -1,7 +1,6 @@
 {
   "version": 2,
   "name": "girlspreneur",
-  "projectId": "prj_aNBe9NGIKHT07GmFe8C6KyxUoyba",
   "orgId": "jiten-kumars-projects",
   "framework": "nextjs",
   "buildCommand": "npm run build",
