@@ -88,33 +88,14 @@ check_vercel_login() {
 check_project_link() {
     log_step "Checking project link status..."
     
+    # For now, we'll let Vercel handle the project linking automatically
+    # This avoids issues with hardcoded project IDs that might not exist
     if [ -f ".vercel/project.json" ]; then
-        local current_project_id=$(jq -r '.projectId' .vercel/project.json 2>/dev/null || echo "")
-        local current_org_id=$(jq -r '.orgId' .vercel/project.json 2>/dev/null || echo "")
-        
-        if [ "$current_project_id" = "$PROJECT_ID" ] && [ "$current_org_id" = "$ORG_ID" ]; then
-            log_success "Project is correctly linked to $PROJECT_NAME"
-            return 0
-        else
-            log_warning "Project is linked to a different Vercel project"
-            log_info "Relinking to correct project..."
-        fi
-    fi
-    
-    # Link to the correct project
-    log_info "Linking to project: $PROJECT_NAME (ID: $PROJECT_ID)"
-    
-    # Remove existing link if any
-    rm -rf .vercel
-    
-    # Link to the specific project
-    vercel link --project-id="$PROJECT_ID"
-    
-    if [ $? -eq 0 ]; then
-        log_success "Project linked successfully to $PROJECT_NAME"
+        log_success "Project is already linked to Vercel"
+        return 0
     else
-        log_error "Failed to link project"
-        exit 1
+        log_info "Project not linked yet - will link during deployment"
+        return 1
     fi
 }
 
@@ -221,14 +202,35 @@ build_application() {
 deploy_to_vercel() {
     log_step "Deploying to Vercel..."
     
-    # Deploy to production
-    vercel --prod
-    
-    if [ $? -eq 0 ]; then
+    # Try to deploy to production
+    log_info "Attempting deployment to production..."
+    if vercel --prod; then
         log_success "Project deployed successfully to Vercel"
+        return 0
     else
-        log_error "Failed to deploy project"
-        exit 1
+        log_warning "Production deployment failed, trying alternative approach..."
+        
+        # Try to unlink and relink project first
+        log_info "Attempting to relink project..."
+        rm -rf .vercel
+        
+        # Link without specific project ID (let Vercel create or find it)
+        if vercel link --yes; then
+            log_success "Project linked successfully"
+            
+            # Try deployment again
+            log_info "Retrying deployment..."
+            if vercel --prod; then
+                log_success "Project deployed successfully to Vercel"
+                return 0
+            else
+                log_error "Failed to deploy project after relinking"
+                return 1
+            fi
+        else
+            log_error "Failed to link project"
+            return 1
+        fi
     fi
 }
 
