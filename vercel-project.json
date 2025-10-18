@@ -1,0 +1,26 @@
+{
+  "projectId": "prj_aNBe9NGIKHT07GmFe8C6KyxUoyba",
+  "orgId": "jiten-kumars-projects",
+  "settings": {
+    "framework": "nextjs",
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next",
+    "installCommand": "npm install",
+    "devCommand": "npm run dev",
+    "functions": {
+      "app/api/**/*": {
+        "maxDuration": 30
+      }
+    }
+  },
+  "env": {
+    "NEXT_PUBLIC_APP_URL": "https://girlspreneur.vercel.app",
+    "NEXT_PUBLIC_API_URL": "https://girlspreneur.vercel.app/api",
+    "NEXTAUTH_URL": "https://girlspreneur.vercel.app",
+    "NEXTAUTH_SECRET": "your-super-secret-nextauth-key-min-32-chars-required",
+    "DATABASE_URL": "postgresql://user:password@host:port/database",
+    "EMAIL_FROM": "noreply@girlspreneur.com",
+    "CSRF_SECRET": "your-super-secret-csrf-key-min-32-chars-required",
+    "ENCRYPTION_KEY": "your-super-secret-encryption-key-min-32-chars-required"
+  }
+}

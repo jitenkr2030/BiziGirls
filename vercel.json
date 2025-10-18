@@ -1,18 +1,17 @@
 {
   "version": 2,
   "name": "girlspreneur",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
+  "projectId": "prj_aNBe9NGIKHT07GmFe8C6KyxUoyba",
+  "orgId": "jiten-kumars-projects",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": ".next",
+  "functions": {
+    "app/api/**/*": {
+      "maxDuration": 30
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
-  ],
+  },
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://girlspreneur.vercel.app",
     "NEXT_PUBLIC_API_URL": "https://girlspreneur.vercel.app/api"
@@ -21,11 +20,6 @@
     "env": {
       "NEXT_PUBLIC_APP_URL": "https://girlspreneur.vercel.app",
       "NEXT_PUBLIC_API_URL": "https://girlspreneur.vercel.app/api"
-    }
-  },
-  "functions": {
-    "app/api/**/*": {
-      "maxDuration": 30
     }
   },
   "crons": [
